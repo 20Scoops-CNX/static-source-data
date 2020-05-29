@@ -90,7 +90,6 @@ You can use [react-app-rewired](https://github.com/timarney/react-app-rewired) f
 
 ```js
 const StaticSourceData = require('static-source-data');
-const path = require('path');
 
 module.exports = (config, env) => {
     config.plugins = config.plugins.concat([
