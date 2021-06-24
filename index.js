@@ -110,7 +110,7 @@ class StaticSourceDataPlugin {
         );
       }
     );
-    compiler.hooks.watchRun.tapAsync(
+    compiler.hooks.beforeCompile.tapAsync(
       "StaticSourceDataPlugin",
       (compilation, callback) => {
         const logger = compilation.getLogger
