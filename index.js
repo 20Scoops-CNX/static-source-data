@@ -2,6 +2,13 @@ const fs = require("fs");
 const path = require("path");
 const fetch = require("node-fetch");
 
+class HTTPResponseError extends Error {
+  constructor(response, ...args) {
+    super(...args);
+    this.response = response;
+  }
+}
+
 const sourceDataFromService = (
   { alradyGenerateContent, onComplete, options, logger },
   callback
@@ -10,7 +17,7 @@ const sourceDataFromService = (
     const keys = Object.keys(options);
 
     const apis = keys.map((key) => {
-      const handdleThen = (response) => {
+      const handleThen = (response) => {
         if (response.ok) {
           return response.json().then((data) => {
             return {
@@ -19,10 +26,7 @@ const sourceDataFromService = (
             };
           });
         } else {
-          throw {
-            name: key,
-            response,
-          };
+          throw new HTTPResponseError(response);
         }
       };
 
@@ -30,9 +34,9 @@ const sourceDataFromService = (
         return fetch(options[key].url, {
           url: undefined,
           ...options[key],
-        }).then(handdleThen);
+        }).then(handleThen);
       } else {
-        return fetch(options[key]).then(handdleThen);
+        return fetch(options[key]).then(handleThen);
       }
     });
 
@@ -53,26 +57,16 @@ const sourceDataFromService = (
           }
         );
       })
-      .catch((error) => {
-        const renderMessage = (message) => {
-          logger.error(
-            `key: ${error.name}\nurl: ${error.response.url}\nstatus: ${
-              error.response.status
-            }\nerror: ${
-              message ? JSON.stringify(message) : error.response.statusText
-            }`
-          );
-          process.exit(1);
-        };
+      .catch(async (error) => {
+        let errorMessage;
+        if (error instanceof HTTPResponseError) {
+          errorMessage = await error.response.text();
+        } else {
+          errorMessage = error;
+        }
 
-        error.response
-          .json()
-          .then((error) => {
-            renderMessage(error);
-          })
-          .catch(() => {
-            renderMessage();
-          });
+        logger.error(`StaticSourceData Webpack Plugin Error: ${errorMessage}`);
+        process.exit(1);
       });
 
     onComplete();
@@ -110,7 +104,7 @@ class StaticSourceDataPlugin {
         );
       }
     );
-    compiler.hooks.watchRun.tapAsync(
+    compiler.hooks.beforeCompile.tapAsync(
       "StaticSourceDataPlugin",
       (compilation, callback) => {
         const logger = compilation.getLogger
