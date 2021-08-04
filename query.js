@@ -10,7 +10,7 @@ var _data = _interopRequireDefault(require("./data.json"));
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { "default": obj }; }
 
 var query = function query(key) {
-  if (!_data["default"][key]) {
+  if (_data["default"][key] === undefined) {
     throw "[StaticSourceData] ".concat(key, " key not found, please check configuration in plugin config");
   }
 
